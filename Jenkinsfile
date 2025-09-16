@@ -41,7 +41,7 @@ pipeline {
                 expression { params.DEPLOY_ENV == 'firebase' || params.DEPLOY_ENV == 'all' }
             }
             steps {
-                sh 'firebase deploy --token "$FIREBASE_TOKEN" --only hosting --project=$FIREBASE_PROJECT'
+                sh 'export NODE_OPTIONS="--max-old-space-size=4096" && firebase deploy --token "$FIREBASE_TOKEN" --only hosting --project=$FIREBASE_PROJECT'
             }
         }
 
