@@ -14,6 +14,9 @@ pipeline {
         REMOTE_PORT = '3334'
         DEPLOY_PATH = "/usr/share/nginx/html/jenkins/${params.USERNAME}2"
         REPO_NAME = 'web-performance-workshop2'
+        GIT_BRANCH = sh(script: 'git rev-parse --abbrev-ref HEAD', returnStdout: true).trim()
+        GIT_COMMIT_SHORT = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
+        BUILD_START_TIME = sh(script: 'date +%s', returnStdout: true).trim()
     }
 
     stages {
@@ -68,16 +71,33 @@ pipeline {
     }
 
     post {
+        always {
+            script {
+                def BUILD_END_TIME = sh(script: 'date +%s', returnStdout: true).trim()
+                env.BUILD_DURATION = sh(script: "echo \$((\${BUILD_END_TIME} - \${BUILD_START_TIME}))", returnStdout: true).trim()
+            }
+        }
         success {
             slackSend(
                 color: 'good',
-                message: "${params.USERNAME} deployment successful: ${env.JOB_NAME} #${env.BUILD_NUMBER}"
+                message: """:white_check_mark: *SUCCESS* - Deployment completed!
+                • *User:* ${params.USERNAME}
+                • *Job:* ${env.JOB_NAME} #${env.BUILD_NUMBER}
+                • *Branch:* ${env.GIT_BRANCH} (${env.GIT_COMMIT_SHORT})
+                • *Duration:* ${env.BUILD_DURATION} seconds
+                • *Environment:* ${params.DEPLOY_ENV}"""
             )
         }
         failure {
             slackSend(
                 color: 'danger',
-                message: "${params.USERNAME} deployment failed: ${env.JOB_NAME} #${env.BUILD_NUMBER}"
+                message: """:x: *FAILED* - Deployment failed!
+                • *User:* ${params.USERNAME}
+                • *Job:* ${env.JOB_NAME} #${env.BUILD_NUMBER}
+                • *Branch:* ${env.GIT_BRANCH} (${env.GIT_COMMIT_SHORT})
+                • *Duration:* ${env.BUILD_DURATION} seconds
+                • *Environment:* ${params.DEPLOY_ENV}
+                • *Error:* Check Jenkins console for details"""
             )
         }
     }
