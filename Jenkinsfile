@@ -3,7 +3,7 @@ pipeline {
 
     parameters {
         choice(name: 'DEPLOY_ENV', choices: ['local', 'remote', 'firebase', 'all'], description: 'Select deployment environment')
-        string(name: 'USERNAME', defaultValue: 'yourname', description: 'Username for deployment directory')
+        string(name: 'USERNAME', defaultValue: 'htham', description: 'Username for deployment directory')
     }
 
     environment {
@@ -14,9 +14,7 @@ pipeline {
         REMOTE_PORT = '3334'
         DEPLOY_PATH = "/usr/share/nginx/html/jenkins/${params.USERNAME}2"
         REPO_NAME = 'web-performance-workshop2'
-        GIT_BRANCH = sh(script: 'git rev-parse --abbrev-ref HEAD', returnStdout: true).trim()
-        GIT_COMMIT_SHORT = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
-        BUILD_START_TIME = sh(script: 'date +%s', returnStdout: true).trim()
+        BUILD_START_TIME = new Date().getTime()
     }
 
     stages {
@@ -73,8 +71,11 @@ pipeline {
     post {
         always {
             script {
-                def BUILD_END_TIME = sh(script: 'date +%s', returnStdout: true).trim()
-                env.BUILD_DURATION = sh(script: "echo \$((\${BUILD_END_TIME} - \${BUILD_START_TIME}))", returnStdout: true).trim()
+                def BUILD_END_TIME = new Date().getTime()
+                def durationMillis = BUILD_END_TIME - BUILD_START_TIME.toLong()
+                env.BUILD_DURATION = (durationMillis / 1000).intValue()
+                env.GIT_BRANCH = sh(script: 'git rev-parse --abbrev-ref HEAD || echo "unknown"', returnStdout: true).trim()
+                env.GIT_COMMIT_SHORT = sh(script: 'git rev-parse --short HEAD || echo "unknown"', returnStdout: true).trim()
             }
         }
         success {
@@ -110,18 +111,17 @@ def deployToServer(String server, String port, Boolean isRemote) {
 
     withCredentials([sshUserPrivateKey(credentialsId: 'ssh-key-id', keyFileVariable: 'SSH_KEY')]) {
         sh """
-            # Step 1: Update repository (assuming it was manually cloned first time)
+            # Step 1: Check if repository directory exists
             ssh -i \$SSH_KEY -o StrictHostKeyChecking=no ${portParam} newbie@${server} "
                 # Check if the repository directory exists
-                if [ -d '${env.DEPLOY_PATH}/${env.REPO_NAME}' ]; then
-                    # Update the repository if it exists
-                    cd ${env.DEPLOY_PATH}/${env.REPO_NAME}
-                    git pull
-                else
-                    echo 'Repository directory not found. Please clone it manually first.'
-                    echo 'Run: mkdir -p ${env.DEPLOY_PATH} && cd ${env.DEPLOY_PATH} && git clone git@github.com:hthamzigexn/web-performance-workshop2.git ${env.REPO_NAME}'
+                if [ ! -d '${env.DEPLOY_PATH}/${env.REPO_NAME}' ]; then
+                    echo 'Repository directory not found: ${env.DEPLOY_PATH}/${env.REPO_NAME}'
                     exit 1
                 fi
+
+                # Update the repository
+                cd ${env.DEPLOY_PATH}/${env.REPO_NAME}
+                git pull
             "
 
             # Step 2: Create release directory with timestamp and deploy files
