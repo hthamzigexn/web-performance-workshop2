@@ -126,7 +126,7 @@ def deployToServer(String server, String port, Boolean isRemote) {
             "
 
             # Step 2: Create release directory with timestamp and deploy files
-            RELEASE_DATE=$(date +%Y%m%d_%H%M%S)
+            RELEASE_DATE=\$(date +%Y%m%d_%H%M%S)
             ssh -i \$SSH_KEY -o StrictHostKeyChecking=no ${portParam} newbie@${server} "
                 # Create release directory
                 mkdir -p ${env.DEPLOY_PATH}/deploy/\${RELEASE_DATE}
