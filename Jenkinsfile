@@ -69,6 +69,15 @@ pipeline {
     }
 
     post {
+        always {
+            script {
+                def currentTime = new Date().getTime()
+                def durationMillis = currentTime - BUILD_START_TIME.toLong()
+                env.BUILD_DURATION = (durationMillis / 1000).intValue()
+                env.GIT_BRANCH = sh(script: 'git rev-parse --abbrev-ref HEAD || echo "unknown"', returnStdout: true).trim()
+                env.GIT_COMMIT_SHORT = sh(script: 'git rev-parse --short HEAD || echo "unknown"', returnStdout: true).trim()
+            }
+        }
         success {
             slackSend(
                 color: 'good',
@@ -78,7 +87,7 @@ pipeline {
                 • *Branch:* ${env.GIT_BRANCH}
                 • *Duration:* ${env.BUILD_DURATION} seconds
                 • *Environment:* ${params.DEPLOY_ENV}
-                • *Firebase URL:* https:// ${FIREBASE_PROJECT}.web.app/"""
+                • *Firebase URL:* https://${FIREBASE_PROJECT}.web.app/"""
             )
         }
         failure {
