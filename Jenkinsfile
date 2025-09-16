@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     parameters {
-        choice(name: 'DEPLOY_ENV', choices: ['local', 'remote', 'firebase', 'all'], description: 'Select deployment environment')
+        choice(name: 'DEPLOY_ENV', choices: ['all', 'local','remote', 'firebase'], description: 'Select deployment environment')
         string(name: 'USERNAME', defaultValue: 'htham', description: 'Username for deployment directory')
     }
 
