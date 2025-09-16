@@ -41,7 +41,7 @@ pipeline {
                 expression { params.DEPLOY_ENV == 'firebase' || params.DEPLOY_ENV == 'all' }
             }
             steps {
-                sh 'export NODE_OPTIONS="--max-old-space-size=4096" && firebase deploy --token "$FIREBASE_TOKEN" --only hosting --project=$FIREBASE_PROJECT'
+                sh 'firebase deploy --token "$FIREBASE_TOKEN" --only hosting --project=$FIREBASE_PROJECT'
             }
         }
 
@@ -69,24 +69,16 @@ pipeline {
     }
 
     post {
-        always {
-            script {
-                def BUILD_END_TIME = new Date().getTime()
-                def durationMillis = BUILD_END_TIME - BUILD_START_TIME.toLong()
-                env.BUILD_DURATION = (durationMillis / 1000).intValue()
-                env.GIT_BRANCH = sh(script: 'git rev-parse --abbrev-ref HEAD || echo "unknown"', returnStdout: true).trim()
-                env.GIT_COMMIT_SHORT = sh(script: 'git rev-parse --short HEAD || echo "unknown"', returnStdout: true).trim()
-            }
-        }
         success {
             slackSend(
                 color: 'good',
                 message: """:white_check_mark: *SUCCESS* - Deployment completed!
                 • *User:* ${params.USERNAME}
                 • *Job:* ${env.JOB_NAME} #${env.BUILD_NUMBER}
-                • *Branch:* ${env.GIT_BRANCH} (${env.GIT_COMMIT_SHORT})
+                • *Branch:* ${env.GIT_BRANCH}
                 • *Duration:* ${env.BUILD_DURATION} seconds
-                • *Environment:* ${params.DEPLOY_ENV}"""
+                • *Environment:* ${params.DEPLOY_ENV}
+                • *Firebase URL:* https:// ${FIREBASE_PROJECT}.web.app/"""
             )
         }
         failure {
@@ -95,7 +87,7 @@ pipeline {
                 message: """:x: *FAILED* - Deployment failed!
                 • *User:* ${params.USERNAME}
                 • *Job:* ${env.JOB_NAME} #${env.BUILD_NUMBER}
-                • *Branch:* ${env.GIT_BRANCH} (${env.GIT_COMMIT_SHORT})
+                • *Branch:* ${env.GIT_BRANCH}
                 • *Duration:* ${env.BUILD_DURATION} seconds
                 • *Environment:* ${params.DEPLOY_ENV}
                 • *Error:* Check Jenkins console for details"""
@@ -125,7 +117,7 @@ def deployToServer(String server, String port, Boolean isRemote) {
             "
 
             # Step 2: Create release directory with timestamp and deploy files
-            RELEASE_DATE=\$(date +%Y%m%d)
+            RELEASE_DATE=\$(date +%Y%m%d_%H%M%S)
             ssh -i \$SSH_KEY -o StrictHostKeyChecking=no ${portParam} newbie@${server} "
                 # Create release directory
                 mkdir -p ${env.DEPLOY_PATH}/deploy/\${RELEASE_DATE}
