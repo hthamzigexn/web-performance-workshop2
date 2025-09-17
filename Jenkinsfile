@@ -140,10 +140,10 @@ def deployToServer(String server, String port, Boolean isRemote) {
 
                 # Create or update symlink to current directory
                 cd ${env.DEPLOY_PATH}/deploy/
-                ln -sf \${RELEASE_DATE} current
+                ln -sfn \${RELEASE_DATE} current
 
                 # Keep only 5 most recent directories
-                ls -1d [0-9]* 2>/dev/null | sort -r | tail -n +6 | xargs rm -rf 2>/dev/null || true
+                ls -1dt [0-9]* 2>/dev/null | tail -n +6 | xargs -r rm -rf --
             "
         """
     }
